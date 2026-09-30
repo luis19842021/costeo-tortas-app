@@ -100,6 +100,32 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
 .savebar button{border:0;border-radius:999px;padding:10px 18px;font:700 .95rem var(--body);background:var(--accent);color:var(--on-accent);cursor:pointer}
 .status{font-size:.82rem;color:var(--muted);min-height:1.2em}
 .status.ok{color:var(--good)} .status.err{color:var(--warn)}
+/* Columnas: una en el celular cerrado, dos en la pantalla abierta del Fold (o tablet/PC) */
+.split{display:flex;flex-direction:column;gap:18px}
+.group,.wrap,#sel-rels{min-width:0;max-width:100%}
+.selwrap select{width:100%}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (min-width:600px){
+  .wrap{max-width:980px}
+  .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px;align-items:start}
+  .col-b{position:sticky;top:calc(12px + env(safe-area-inset-top,0px))}
+  .plist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .plist>.label{grid-column:1/-1}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .tabs{max-width:460px}
+}
+@media (min-width:600px) and (max-height:760px){ .col-b{position:static} }
+/* Pantalla externa del Fold (muy angosta) */
+@media (max-width:380px){
+  body{padding:0 12px;padding-block:14px 40px;font-size:14px}
+  h1{font-size:1.45rem}
+  .big .v{font-size:1.45rem}
+  .chip{padding:8px 12px;font-size:.9rem;min-height:40px}
+  .tabs button{padding:8px 6px;font-size:.85rem}
+  .result{padding:14px}
+  th,td{padding:8px 8px}
+  .row .m{min-width:60px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -115,13 +141,15 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
     <button id="tab-precios" role="tab" aria-selected="false" data-tab="precios">Precios</button>
   </div>
 
-  <section id="view-calc" class="wrap" style="gap:18px">
+  <section id="view-calc" class="split">
+   <div class="col col-a">
     <div class="group"><span class="label">Tamaño</span><div class="chips" id="sel-size"></div></div>
     <div class="group"><span class="label">Sabor de bizcochuelo</span><div class="chips" id="sel-biz"></div></div>
     <div class="group"><span class="label">Capas de relleno</span><div class="chips" id="sel-capas"></div></div>
     <div id="sel-rels" class="wrap" style="gap:12px"></div>
     <div class="group"><span class="label">Cobertura</span><div class="chips" id="sel-cob"></div></div>
-
+   </div>
+   <div class="col col-b">
     <div class="result" aria-live="polite">
       <div class="big">
         <div><div class="k">Costo total</div><div class="v" id="o-cost">–</div></div>
@@ -152,15 +180,19 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
       <span class="label">Todos los tamaños con esta combinación</span>
       <div class="tbl-wrap"><table id="o-table"></table></div>
     </div>
+   </div>
   </section>
 
-  <section id="view-cup" class="wrap" style="gap:18px" hidden>
+  <section id="view-cup" class="split" hidden>
+   <div class="col col-a">
     <div class="preview"><b>Vista previa.</b> Las cantidades por cupcake son de ejemplo; los precios sí son tus precios de materia prima. Pasame tus recetas y la dejo exacta.</div>
     <div class="group"><span class="label">Cantidad</span><div class="chips" id="c-qty"></div></div>
     <div class="group"><span class="label">Masa</span><div class="chips" id="c-masa"></div></div>
     <div class="group"><span class="label">Relleno</span><div class="chips" id="c-rel"></div></div>
     <div class="group"><span class="label">Frosting</span><div class="chips" id="c-fro"></div></div>
     <div class="group"><span class="label">Decoración</span><div class="chips" id="c-deco"></div></div>
+   </div>
+   <div class="col col-b">
     <div class="result" aria-live="polite">
       <div class="big">
         <div><div class="k">Costo total</div><div class="v" id="c-cost">–</div><div class="k" id="c-cost-u"></div></div>
@@ -171,6 +203,7 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
     </div>
     <div class="group"><span class="label">Desglose</span><div class="layers" id="c-layers"></div></div>
     <p class="note" style="margin:0">Falta cargar pirotines y cajas para cupcakes: pasame precios y se suman como packaging.</p>
+   </div>
   </section>
 
   <section id="view-precios" class="wrap" style="gap:12px" hidden>
