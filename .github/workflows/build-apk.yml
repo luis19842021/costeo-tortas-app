@@ -1,9 +1,11 @@
-# Cada vez que subís cambios (push), GitHub arma el APK solo.
+# Arma el APK. Solo hace falta cuando cambia la configuración de la app;
+# los cambios de la calculadora (carpeta www) llegan solos por GitHub Pages.
 name: Compilar APK
 
 on:
   push:
     branches: [main]
+    paths: ["capacitor.config.json", "package.json", ".github/workflows/build-apk.yml"]
   workflow_dispatch:
 
 jobs:
