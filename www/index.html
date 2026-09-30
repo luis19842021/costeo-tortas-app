@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Costeo de Tortas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: una columna tipo app de celular — selector arriba, resultado grande, desglose por capas, pestaña de precios. */
+:root{
+  --bg:#FAF6F7; --surface:#FFFFFF; --surface-2:#F4ECEE; --line:#E8DADE;
+  --fg:#2E1F23; --muted:#7A666B; --accent:#A8325E; --accent-soft:#F6DDE6; --on-accent:#FFFFFF;
+  --good:#2F7D5B; --warn:#B4541D;
+  --display:"Young Serif", Georgia, "Times New Roman", serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1C1417; --surface:#261C20; --surface-2:#30242A; --line:#3E2F35;
+  --fg:#F4E9EC; --muted:#B39FA5; --accent:#E57FA5; --accent-soft:#4A2433; --on-accent:#1C1417;
+  --good:#6CC79C; --warn:#F0A06B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C1417; --surface:#261C20; --surface-2:#30242A; --line:#3E2F35;
+  --fg:#F4E9EC; --muted:#B39FA5; --accent:#E57FA5; --accent-soft:#4A2433; --on-accent:#1C1417;
+  --good:#6CC79C; --warn:#F0A06B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;padding:0 16px;padding-block:20px 48px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.2px;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:999px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:600 .9rem var(--body);padding:9px 10px;border-radius:999px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.group{display:flex;flex-direction:column;gap:8px}
+.label{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font:500 .95rem var(--body);padding:9px 16px;border-radius:999px;cursor:pointer;min-height:42px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.chip:focus-visible,.tabs button:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.result{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big div{min-width:0}
+.big .v{font-family:var(--display);font-size:1.75rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.big .price .v{color:var(--accent)}
+.k{font-size:.78rem;color:var(--muted)}
+.mult{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding-top:12px;flex-wrap:wrap}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface-2);color:var(--fg);font:600 1.1rem var(--body);cursor:pointer}
+.stepper output{min-width:54px;text-align:center;font:700 1.05rem var(--body);font-variant-numeric:tabular-nums}
+.gain{font-size:.85rem;color:var(--muted)}
+.gain b{color:var(--good);font-variant-numeric:tabular-nums}
+.selwrap{display:flex;align-items:center;gap:10px}
+.selwrap select{flex:1;min-width:0;font:500 1rem var(--body);color:var(--fg);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;min-height:46px}
+.badge{flex:none;font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums}
+.badge.premium,.badge.superpremium{background:var(--accent-soft);color:var(--accent)}
+.preview{background:var(--surface-2);border:1px dashed var(--accent);border-radius:12px;padding:10px 12px;font-size:.85rem;color:var(--muted)}
+.preview b{color:var(--accent)}
+.chip .tier{font-size:.78em;font-weight:600;opacity:.85}
+.plusbox{display:flex;flex-direction:column;gap:4px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.88rem}
+.prow{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.prow b{color:var(--accent)} .prow.tot{border-top:1px solid var(--line);padding-top:4px;font-weight:600}
+.layers{display:flex;flex-direction:column;gap:8px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
+summary::-webkit-details-marker{display:none}
+summary .sw{width:10px;height:10px;border-radius:3px;flex:none}
+summary .n{flex:1;font-weight:600;min-width:0}
+summary .n small{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
+summary .c{font-variant-numeric:tabular-nums;font-weight:600}
+summary .car{color:var(--muted);transition:transform .15s}
+details[open] summary .car{transform:rotate(90deg)}
+.off summary .n,.off summary .c{color:var(--muted);text-decoration:line-through}
+.rows{padding:0 14px 12px;display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:1fr auto auto;gap:12px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.row .q{color:var(--muted);text-align:right}
+.row .m{text-align:right;min-width:72px}
+.bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface-2)}
+.bar span{display:block;height:100%}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.9rem}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+tr.cur td{background:var(--accent-soft);font-weight:600}
+.note{font-size:.8rem;color:var(--muted)}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pitem{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:end}
+.pitem .nm{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.pitem .nm span{font-weight:400;color:var(--muted);font-size:.82rem;font-variant-numeric:tabular-nums;text-align:right}
+.pitem label{display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--muted);min-width:0}
+.pitem input{width:100%;font:500 1rem var(--body);padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+.pitem.dirty{border-color:var(--accent)}
+.savebar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--fg);color:var(--bg);padding:10px 10px 10px 16px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.savebar button{border:0;border-radius:999px;padding:10px 18px;font:700 .95rem var(--body);background:var(--accent);color:var(--on-accent);cursor:pointer}
+.status{font-size:.82rem;color:var(--muted);min-height:1.2em}
+.status.ok{color:var(--good)} .status.err{color:var(--warn)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Costeo de Tortas</h1>
+    <p class="sub">Elegí tamaño, relleno y cobertura. Los precios salen de tu materia prima.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button id="tab-calc" role="tab" aria-selected="true" data-tab="calc">Tortas</button>
+    <button id="tab-cup" role="tab" aria-selected="false" data-tab="cup">Cupcakes</button>
+    <button id="tab-precios" role="tab" aria-selected="false" data-tab="precios">Precios</button>
+  </div>
+
+  <section id="view-calc" class="wrap" style="gap:18px">
+    <div class="group"><span class="label">Tamaño</span><div class="chips" id="sel-size"></div></div>
+    <div class="group"><span class="label">Sabor de bizcochuelo</span><div class="chips" id="sel-biz"></div></div>
+    <div class="group"><span class="label">Capas de relleno</span><div class="chips" id="sel-capas"></div></div>
+    <div id="sel-rels" class="wrap" style="gap:12px"></div>
+    <div class="group"><span class="label">Cobertura</span><div class="chips" id="sel-cob"></div></div>
+
+    <div class="result" aria-live="polite">
+      <div class="big">
+        <div><div class="k">Costo total</div><div class="v" id="o-cost">–</div></div>
+        <div class="price"><div class="k">Precio sugerido</div><div class="v" id="o-price">–</div></div>
+      </div>
+      <div class="plusbox" id="o-plus" hidden></div>
+      <div class="bar" id="o-bar" aria-hidden="true"></div>
+      <div class="mult">
+        <div>
+          <div class="k">Multiplicador sobre ingredientes</div>
+          <div class="gain">Ganancia: <b id="o-gain">–</b></div>
+        </div>
+        <div class="stepper">
+          <button id="m-dn" aria-label="Bajar multiplicador">−</button>
+          <output id="o-mult">×3</output>
+          <button id="m-up" aria-label="Subir multiplicador">+</button>
+        </div>
+      </div>
+      <p class="note" style="margin:0">Precio sugerido = ingredientes × multiplicador + packaging al costo + adicionales (rellenos con plus y bizcochuelo de sabor).</p>
+    </div>
+
+    <div class="group">
+      <span class="label">Desglose</span>
+      <div class="layers" id="o-layers"></div>
+    </div>
+
+    <div class="group">
+      <span class="label">Todos los tamaños con esta combinación</span>
+      <div class="tbl-wrap"><table id="o-table"></table></div>
+    </div>
+  </section>
+
+  <section id="view-cup" class="wrap" style="gap:18px" hidden>
+    <div class="preview"><b>Vista previa.</b> Las cantidades por cupcake son de ejemplo; los precios sí son tus precios de materia prima. Pasame tus recetas y la dejo exacta.</div>
+    <div class="group"><span class="label">Cantidad</span><div class="chips" id="c-qty"></div></div>
+    <div class="group"><span class="label">Masa</span><div class="chips" id="c-masa"></div></div>
+    <div class="group"><span class="label">Relleno</span><div class="chips" id="c-rel"></div></div>
+    <div class="group"><span class="label">Frosting</span><div class="chips" id="c-fro"></div></div>
+    <div class="group"><span class="label">Decoración</span><div class="chips" id="c-deco"></div></div>
+    <div class="result" aria-live="polite">
+      <div class="big">
+        <div><div class="k">Costo total</div><div class="v" id="c-cost">–</div><div class="k" id="c-cost-u"></div></div>
+        <div class="price"><div class="k">Precio sugerido</div><div class="v" id="c-price">–</div><div class="k" id="c-price-u"></div></div>
+      </div>
+      <div class="bar" id="c-bar" aria-hidden="true"></div>
+      <div class="gain">Ganancia: <b id="c-gain">–</b> · multiplicador ×<span id="c-mult"></span> (el mismo de tortas)</div>
+    </div>
+    <div class="group"><span class="label">Desglose</span><div class="layers" id="c-layers"></div></div>
+    <p class="note" style="margin:0">Falta cargar pirotines y cajas para cupcakes: pasame precios y se suman como packaging.</p>
+  </section>
+
+  <section id="view-precios" class="wrap" style="gap:12px" hidden>
+    <p class="note" style="margin:0">Cambiá el plus de los rellenos o lo que pagás por cada insumo. Al guardar, se actualizan todas las tortas.</p>
+    <div class="plist" id="p-list"></div>
+    <div class="status" id="p-status"></div>
+    <div class="savebar" id="p-bar" hidden>
+      <span id="p-count">Cambios sin guardar</span>
+      <button id="p-save">Guardar precios</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---------- Recetas (las mantiene Claude) ----------
+const DEFAULT_INSUMOS = {
+  "Harina leudante":{pres:1000,u:"g",precio:1500},
+  "Azúcar":{pres:1000,u:"g",precio:1500},
+  "Aceite":{pres:900,u:"ml",precio:4000},
+  "Esencia de vainilla":{pres:100,u:"ml",precio:3000},
+  "Huevos":{pres:30,u:"u",precio:7000},
+  "Dulce de leche repostero":{pres:10000,u:"g",precio:50000},
+  "Crema de leche":{pres:200,u:"ml",precio:2500},
+  "Chocolate semiamargo":{pres:6000,u:"g",precio:70000},
+  "Chocolate blanco":{pres:6000,u:"g",precio:70000},
+  "Chocolate con leche":{pres:6000,u:"g",precio:70000},
+  "Salsa de frutos rojos":{pres:250,u:"g",precio:12000},
+  "Chocolinas":{pres:250,u:"g",precio:3000},
+  "Chips de chocolate":{pres:1000,u:"g",precio:12000},
+  "Pasta Bon o Bon":{pres:300,u:"g",precio:6000},
+  "Confites rellenos de chocolate":{pres:1000,u:"g",precio:35000},
+  "Café instantáneo":{pres:250,u:"g",precio:8000},
+  "Licor de café":{pres:700,u:"ml",precio:10000},
+  "Galletitas Oreo":{pres:9,u:"u",precio:2000},
+  "Bolitas de cereal de chocolate":{pres:100,u:"g",precio:2000},
+  "Pasta de pistacho":{pres:250,u:"g",precio:12000},
+  "Pasta de maracuyá":{pres:250,u:"g",precio:12000},
+  "Esencia saborizante":{pres:100,u:"ml",precio:3000},
+  "Nutella":{pres:600,u:"g",precio:15000},
+  "Maní":{pres:250,u:"g",precio:4000},
+  "Manteca":{pres:200,u:"g",precio:2500},
+  "Azúcar impalpable":{pres:1000,u:"g",precio:4000},
+  "Fondant":{pres:3000,u:"g",precio:25000},
+  "Plato 20 cm":{pres:1,u:"u",precio:1200},
+  "Plato 22 cm":{pres:1,u:"u",precio:1300},
+  "Caja para torta 16 cm":{pres:1,u:"u",precio:2500},
+  "Caja para torta 18 cm":{pres:1,u:"u",precio:2500},
+  "Caja para torta 22 cm":{pres:1,u:"u",precio:2500}
+};
+const SIZES = ["16 cm","18 cm","20 cm"];
+const TORTAS = {
+  "16 cm":{biz:[["Harina leudante",250],["Azúcar",200],["Aceite",20],["Esencia de vainilla",5],["Huevos",5]],
+           gan:[["Crema de leche",100],["Chocolate semiamargo",300]],
+           pack:[["Plato 20 cm",1],["Caja para torta 16 cm",1]]},
+  "18 cm":{biz:[["Harina leudante",300],["Azúcar",250],["Aceite",20],["Esencia de vainilla",5],["Huevos",6]],
+           gan:[["Crema de leche",100],["Chocolate semiamargo",300]],
+           pack:[["Plato 22 cm",1],["Caja para torta 18 cm",1]]},
+  "20 cm":{biz:[["Harina leudante",350],["Azúcar",265],["Aceite",20],["Esencia de vainilla",5],["Huevos",7]],
+           gan:[["Crema de leche",200],["Chocolate semiamargo",400]],
+           pack:[["Plato 22 cm",1],["Caja para torta 22 cm",1]]}
+};
+const RELLENOS = {
+  "Dulce de leche":{"16 cm":[["Dulce de leche repostero",750]],"18 cm":[["Dulce de leche repostero",800]],"20 cm":[["Dulce de leche repostero",900]]},
+  "Crema Bariloche":{"16 cm":[["Dulce de leche repostero",750],["Chocolate semiamargo",600]],
+                     "18 cm":[["Dulce de leche repostero",795],["Chocolate semiamargo",645]],
+                     "20 cm":[["Dulce de leche repostero",900],["Chocolate semiamargo",720]]},
+  "Mousse de chocolate":{"16 cm":[["Crema de leche",495],["Chocolate semiamargo",750]],
+                         "18 cm":[["Crema de leche",540],["Chocolate semiamargo",795]],
+                         "20 cm":[["Crema de leche",600],["Chocolate semiamargo",900]]},
+  "Mousse de dulce de leche":{"16 cm":[["Dulce de leche repostero",900],["Crema de leche",150]],
+                              "18 cm":[["Dulce de leche repostero",960],["Crema de leche",165]],
+                              "20 cm":[["Dulce de leche repostero",1080],["Crema de leche",180]]},
+  "Kinder":{"16 cm":[["Crema de leche",600],["Chocolate blanco",900],["Chocolate con leche",900]],
+            "18 cm":[["Crema de leche",645],["Chocolate blanco",960],["Chocolate con leche",960]],
+            "20 cm":[["Crema de leche",720],["Chocolate blanco",1080],["Chocolate con leche",1080]]},
+  "Ganache de frutos rojos":{"16 cm":[["Crema de leche",300],["Chocolate blanco",900],["Salsa de frutos rojos",45]],
+            "18 cm":[["Crema de leche",315],["Chocolate blanco",960],["Salsa de frutos rojos",48]],
+            "20 cm":[["Crema de leche",360],["Chocolate blanco",1080],["Salsa de frutos rojos",54]]},
+  "Dulce de leche granizado":{"16 cm":[["Dulce de leche repostero",845],["Chocolate semiamargo",280]],
+            "18 cm":[["Dulce de leche repostero",900],["Chocolate semiamargo",300]],
+            "20 cm":[["Dulce de leche repostero",1015],["Chocolate semiamargo",340]]},
+  "Chocotorta":{"16 cm":[["Dulce de leche repostero",900],["Crema de leche",150],["Chocolinas",187.5]],
+            "18 cm":[["Dulce de leche repostero",960],["Crema de leche",165],["Chocolinas",201]],
+            "20 cm":[["Dulce de leche repostero",1080],["Crema de leche",180],["Chocolinas",225]]},
+  "Dulce de leche con chips":{"16 cm":[["Dulce de leche repostero",843.8],["Chips de chocolate",140.6]],
+    "18 cm":[["Dulce de leche repostero",900],["Chips de chocolate",150]],
+    "20 cm":[["Dulce de leche repostero",1012.5],["Chips de chocolate",168.8]]},
+  "Dulce de leche con Marroc":{"16 cm":[["Dulce de leche repostero",843.8],["Chocolate con leche",79.6],["Chocolate blanco",34.5],["Pasta Bon o Bon",26.5]],
+    "18 cm":[["Dulce de leche repostero",900],["Chocolate con leche",84.9],["Chocolate blanco",36.8],["Pasta Bon o Bon",28.3]],
+    "20 cm":[["Dulce de leche repostero",1012.5],["Chocolate con leche",95.5],["Chocolate blanco",41.4],["Pasta Bon o Bon",31.8]]},
+  "Dulce de leche con confites":{"16 cm":[["Dulce de leche repostero",843.8],["Confites rellenos de chocolate",140.6]],
+    "18 cm":[["Dulce de leche repostero",900],["Confites rellenos de chocolate",150]],
+    "20 cm":[["Dulce de leche repostero",1012.5],["Confites rellenos de chocolate",168.8]]},
+  "Chocolate suizo":{"16 cm":[["Chocolate semiamargo",843.75],["Chocolate blanco",140.62]],
+    "18 cm":[["Chocolate semiamargo",900],["Chocolate blanco",150]],
+    "20 cm":[["Chocolate semiamargo",1012.5],["Chocolate blanco",168.75]]},
+  "Crema moka":{"16 cm":[["Crema de leche",140.62],["Chocolate blanco",421.88],["Manteca",281.25],["Azúcar impalpable",421.88],["Café instantáneo",14.06],["Licor de café",42.19]],
+    "18 cm":[["Crema de leche",150],["Chocolate blanco",450],["Manteca",300],["Azúcar impalpable",450],["Café instantáneo",15],["Licor de café",45]],
+    "20 cm":[["Crema de leche",168.75],["Chocolate blanco",506.25],["Manteca",337.5],["Azúcar impalpable",506.25],["Café instantáneo",16.88],["Licor de café",50.62]]},
+  "Crema Oreo":{"16 cm":[["Crema de leche",140.62],["Chocolate blanco",421.88],["Manteca",281.25],["Azúcar impalpable",421.88],["Galletitas Oreo",16.88]],
+    "18 cm":[["Crema de leche",150],["Chocolate blanco",450],["Manteca",300],["Azúcar impalpable",450],["Galletitas Oreo",18]],
+    "20 cm":[["Crema de leche",168.75],["Chocolate blanco",506.25],["Manteca",337.5],["Azúcar impalpable",506.25],["Galletitas Oreo",20.25]]},
+  "Ganache blanco con dulce de leche":{"16 cm":[["Crema de leche",281.25],["Chocolate blanco",843.75],["Dulce de leche repostero",140.62]],
+    "18 cm":[["Crema de leche",300],["Chocolate blanco",900],["Dulce de leche repostero",150]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate blanco",1012.5],["Dulce de leche repostero",168.75]]},
+  "Tramontana":{"16 cm":[["Crema de leche",140.62],["Chocolate blanco",421.88],["Manteca",281.25],["Azúcar impalpable",421.88],["Dulce de leche repostero",140.62],["Bolitas de cereal de chocolate",70.31]],
+    "18 cm":[["Crema de leche",150],["Chocolate blanco",450],["Manteca",300],["Azúcar impalpable",450],["Dulce de leche repostero",150],["Bolitas de cereal de chocolate",75]],
+    "20 cm":[["Crema de leche",168.75],["Chocolate blanco",506.25],["Manteca",337.5],["Azúcar impalpable",506.25],["Dulce de leche repostero",168.75],["Bolitas de cereal de chocolate",84.38]]},
+  "Banana split":{"16 cm":[["Crema de leche",140.62],["Chocolate blanco",421.88],["Manteca",281.25],["Azúcar impalpable",421.88],["Dulce de leche repostero",140.62],["Bolitas de cereal de chocolate",70.31]],
+    "18 cm":[["Crema de leche",150],["Chocolate blanco",450],["Manteca",300],["Azúcar impalpable",450],["Dulce de leche repostero",150],["Bolitas de cereal de chocolate",75]],
+    "20 cm":[["Crema de leche",168.75],["Chocolate blanco",506.25],["Manteca",337.5],["Azúcar impalpable",506.25],["Dulce de leche repostero",168.75],["Bolitas de cereal de chocolate",84.38]]},
+  "Ganache de pistacho":{"16 cm":[["Crema de leche",281.25],["Chocolate blanco",843.75],["Pasta de pistacho",14.06]],
+    "18 cm":[["Crema de leche",300],["Chocolate blanco",900],["Pasta de pistacho",15]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate blanco",1012.5],["Pasta de pistacho",16.88]]},
+  "Ganache de maracuyá":{"16 cm":[["Crema de leche",281.25],["Chocolate blanco",843.75],["Pasta de maracuyá",14.06]],
+    "18 cm":[["Crema de leche",300],["Chocolate blanco",900],["Pasta de maracuyá",15]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate blanco",1012.5],["Pasta de maracuyá",16.88]]},
+  "Buttercream frutal":{"16 cm":[["Crema de leche",140.62],["Chocolate blanco",421.88],["Manteca",281.25],["Azúcar impalpable",421.88],["Esencia saborizante",14.06]],
+    "18 cm":[["Crema de leche",150],["Chocolate blanco",450],["Manteca",300],["Azúcar impalpable",450],["Esencia saborizante",15]],
+    "20 cm":[["Crema de leche",168.75],["Chocolate blanco",506.25],["Manteca",337.5],["Azúcar impalpable",506.25],["Esencia saborizante",16.88]]},
+  "Ganache blanco con Bon o Bon":{"16 cm":[["Crema de leche",281.25],["Chocolate blanco",843.75],["Pasta Bon o Bon",140.62]],
+    "18 cm":[["Crema de leche",300],["Chocolate blanco",900],["Pasta Bon o Bon",150]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate blanco",1012.5],["Pasta Bon o Bon",168.75]]},
+  "Ganache semiamargo con Nutella":{"16 cm":[["Crema de leche",281.25],["Chocolate semiamargo",843.75],["Nutella",210.94]],
+    "18 cm":[["Crema de leche",300],["Chocolate semiamargo",900],["Nutella",225]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate semiamargo",1012.5],["Nutella",253.12]]},
+  "Marroc":{"16 cm":[["Crema de leche",281.25],["Chocolate blanco",421.88],["Chocolate con leche",421.88]],
+    "18 cm":[["Crema de leche",300],["Chocolate blanco",450],["Chocolate con leche",450]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate blanco",506.25],["Chocolate con leche",506.25]]},
+  "Chocolate block":{"16 cm":[["Crema de leche",281.25],["Chocolate semiamargo",843.75],["Maní",281.25]],
+    "18 cm":[["Crema de leche",300],["Chocolate semiamargo",900],["Maní",300]],
+    "20 cm":[["Crema de leche",337.5],["Chocolate semiamargo",1012.5],["Maní",337.5]]}
+};
+const COBERTURAS = {
+  "Fondant":{ganache:true,"16 cm":[["Fondant",500]],"18 cm":[["Fondant",600]],"20 cm":[["Fondant",1000]]},
+  "Buttercream":{ganache:false,
+    "16 cm":[["Crema de leche",100],["Chocolate blanco",300],["Manteca",100],["Azúcar impalpable",150]],
+    "18 cm":[["Crema de leche",120],["Chocolate blanco",360],["Manteca",120],["Azúcar impalpable",180]],
+    "20 cm":[["Crema de leche",200],["Chocolate blanco",600],["Manteca",200],["Azúcar impalpable",300]]}
+};
+
+// ---------- Estado ----------
+let insumos = JSON.parse(JSON.stringify(DEFAULT_INSUMOS));
+let mult = 3;
+const CAT_RELLENO = {"Dulce de leche":"clasico","Crema Bariloche":"premium","Mousse de chocolate":"premium","Mousse de dulce de leche":"premium","Kinder":"premium","Ganache de frutos rojos":"premium","Dulce de leche granizado":"premium","Chocotorta":"premium","Dulce de leche con chips":"clasico","Dulce de leche con Marroc":"clasico","Dulce de leche con confites":"clasico","Chocolate suizo":"premium","Crema moka":"premium","Crema Oreo":"premium","Ganache blanco con dulce de leche":"premium","Tramontana":"premium","Banana split":"premium","Ganache de pistacho":"premium","Ganache de maracuyá":"premium","Buttercream frutal":"premium","Ganache blanco con Bon o Bon":"superpremium","Ganache semiamargo con Nutella":"superpremium","Marroc":"superpremium","Chocolate block":"superpremium"};
+const CAT_LABEL = {clasico:"Clásico", premium:"Premium", superpremium:"Super premium", bizcochuelo:"Bizcochuelo de sabor"};
+const BIZ_SABORES = ["Vainilla","Chocolate","Naranja-limón","Marmolado"];
+let plus = {premium:5000, superpremium:7000, bizcochuelo:4000};
+const sel = {size:"16 cm", biz:"Vainilla", capas:1, rels:["Dulce de leche","Dulce de leche","Dulce de leche"], cob:"Fondant"};
+const RCOLORS = ["#8C5A3C","#B07A4F","#6E3F2B"];
+let db = null, docRef = null, canSave = true;
+
+const $ = id => document.getElementById(id);
+const LS_KEY = "costeo-tortas-precios";
+const saveLocal = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({insumos, mult, plus})); return true; } catch(e) { return false; } };
+const loadLocal = () => { try { const d = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (!d) return;
+  if (d.insumos) insumos = Object.assign(JSON.parse(JSON.stringify(DEFAULT_INSUMOS)), d.insumos);
+  if (typeof d.mult === "number") mult = d.mult; if (d.plus) plus = Object.assign({premium:5000, superpremium:7000, bizcochuelo:4000}, d.plus); } catch(e) {} };
+const fmt = n => "$" + Math.round(n).toLocaleString("es-AR");
+const fmtU = (q,u) => q.toLocaleString("es-AR",{maximumFractionDigits:0}) + (u==="u" ? (q===1?" u.":" u.") : " " + u);
+const unitCost = name => { const i = insumos[name]; return i && i.pres ? i.precio / i.pres : 0; };
+
+function compute(size, capas, rels, cob, biz="Vainilla"){
+  const t = TORTAS[size], cobD = COBERTURAS[cob];
+  const line = ([n,q]) => ({n, q, u:(insumos[n]||{}).u || "", c: q * unitCost(n)});
+  const layers = [
+    {key:"biz", name:"Bizcochuelo", tag:biz, color:"#D9A55B", items:t.biz.map(line)},
+    ...rels.slice(0,capas).map((rel,k) => ({key:"rel"+k, name: capas>1 ? `Relleno capa ${k+1}` : "Relleno", tag:rel, color:RCOLORS[k],
+       sub: "1/3 de la receta (receta = 3 capas)", items:RELLENOS[rel][size].map(([n,q]) => line([n, q/3]))})),
+    {key:"gan", name:"Ganache", color:"#4B2E2A", items:t.gan.map(line), off:!cobD.ganache},
+    {key:"cob", name:"Cobertura", tag:cob, color:"var(--accent)", items:cobD[size].map(line)},
+    {key:"pack", name:"Packaging", color:"#9AA3AE", items:t.pack.map(line), pack:true}
+  ];
+  layers.forEach(l => l.total = l.off ? 0 : l.items.reduce((s,i)=>s+i.c,0));
+  const ingr = layers.filter(l=>!l.pack).reduce((s,l)=>s+l.total,0);
+  const pack = layers.find(l=>l.pack).total;
+  const plusItems = rels.slice(0,capas).map((rel,k)=>({k, rel, cat:CAT_RELLENO[rel]||"clasico"})).filter(x=>x.cat!=="clasico").map(x=>({...x, v: plus[x.cat]||0}));
+  if (biz !== "Vainilla") plusItems.unshift({k:-1, rel:biz, cat:"bizcochuelo", v: plus.bizcochuelo||0});
+  const plusTotal = plusItems.reduce((a,x)=>a+x.v,0);
+  const cost = ingr + pack, price = ingr*mult + pack + plusTotal;
+  return {layers, ingr, pack, cost, price, plusItems, plusTotal, gain: price - cost};
+}
+
+// ---------- Render ----------
+function chips(el, list, key, idx){
+  el.innerHTML = "";
+  list.forEach(v => {
+    const b = document.createElement("button");
+    const cur = idx===undefined ? sel[key] : sel[key][idx];
+    b.className = "chip"; b.textContent = key==="capas" ? String(v) : v;
+    if (key==="rels" && (CAT_RELLENO[v]||"clasico")!=="clasico") { const t=document.createElement("small"); t.className="tier"; t.textContent=" · "+CAT_LABEL[CAT_RELLENO[v]]; b.appendChild(t); } b.id = `chip-${key}${idx??""}-${String(v).replace(/\W+/g,"")}`;
+    b.setAttribute("aria-pressed", String(cur===v));
+    b.onclick = () => { if (idx===undefined) sel[key]=v; else sel[key][idx]=v; render(); };
+    el.appendChild(b);
+  });
+}
+function render(){
+  chips($("sel-size"), SIZES, "size");
+  chips($("sel-biz"), BIZ_SABORES, "biz");
+  chips($("sel-capas"), [1,2,3], "capas");
+  const rw = $("sel-rels"); rw.innerHTML = "";
+  for (let k=0; k<sel.capas; k++){
+    const g = document.createElement("div"); g.className = "group";
+    const id = "rel-sel-"+k;
+    const groups = [["clasico","Clásicos · sin plus"],["premium",`Plus ${fmt(plus.premium)}`],["superpremium",`Plus ${fmt(plus.superpremium)}`]];
+    const opts = groups.map(([c,lab]) => {
+      const names = Object.keys(RELLENOS).filter(n => (CAT_RELLENO[n]||"clasico")===c);
+      return names.length ? `<optgroup label="${lab}">${names.map(n=>`<option value="${n}" ${sel.rels[k]===n?"selected":""}>${n}</option>`).join("")}</optgroup>` : "";
+    }).join("");
+    const cat = CAT_RELLENO[sel.rels[k]]||"clasico";
+    g.innerHTML = `<label class="label" for="${id}">${sel.capas>1 ? "Relleno · capa "+(k+1) : "Relleno"}</label>
+      <div class="selwrap"><select id="${id}">${opts}</select><span class="badge ${cat}">${cat==="clasico"?"Sin plus":"+"+fmt(plus[cat])}</span></div>`;
+    rw.appendChild(g);
+    g.querySelector("select").onchange = e => { sel.rels[k] = e.target.value; render(); };
+  }
+  chips($("sel-cob"), Object.keys(COBERTURAS), "cob");
+  const r = compute(sel.size, sel.capas, sel.rels, sel.cob, sel.biz);
+  $("o-cost").textContent = fmt(r.cost);
+  $("o-price").textContent = fmt(r.price);
+  $("o-gain").textContent = fmt(r.gain);
+  $("o-plus").hidden = r.plusTotal===0;
+  $("o-plus").innerHTML = r.plusItems.map(x=>`<div class="prow"><span>${x.cat==="bizcochuelo" ? "Bizcochuelo de "+x.rel.toLowerCase() : `Plus ${CAT_LABEL[x.cat].toLowerCase()} · ${sel.capas>1?"capa "+(x.k+1)+" · ":""}${x.rel}`}</span><b>+${fmt(x.v)}</b></div>`).join("") + (r.plusItems.length>1?`<div class="prow tot"><span>Total plus</span><b>+${fmt(r.plusTotal)}</b></div>`:"");
+  $("o-mult").textContent = "×" + mult.toLocaleString("es-AR");
+  $("o-bar").innerHTML = r.layers.filter(l=>l.total>0).map(l=>`<span style="width:${(l.total/r.cost*100).toFixed(2)}%;background:${l.color}" title="${l.name}"></span>`).join("");
+  const open = new Set([...document.querySelectorAll("#o-layers details[open]")].map(d=>d.dataset.k));
+  $("o-layers").innerHTML = r.layers.map(l => `
+    <details data-k="${l.key}" class="${l.off?'off':''}" ${open.has(l.key)?'open':''}>
+      <summary><span class="sw" style="background:${l.color}"></span>
+        <span class="n">${l.name}${l.tag?` · ${l.tag}`:""}${l.off?`<small>No se usa con ${sel.cob.toLowerCase()}</small>`:""}${l.sub?`<small>${l.sub}</small>`:""}</span>
+        <span class="c">${fmt(l.total)}</span><span class="car" aria-hidden="true">›</span></summary>
+      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${fmtU(i.q,i.u)}</span><span class="m">${fmt(l.off?0:i.c)}</span></div>`).join("")}</div>
+    </details>`).join("");
+  $("o-table").innerHTML = `<thead><tr><th>Tamaño</th><th>Costo</th><th>Precio sug.</th><th>Ganancia</th></tr></thead><tbody>` +
+    SIZES.map(s => { const x = compute(s, sel.capas, sel.rels, sel.cob, sel.biz);
+      return `<tr class="${s===sel.size?'cur':''}"><td>${s}</td><td>${fmt(x.cost)}</td><td>${fmt(x.price)}</td><td>${fmt(x.gain)}</td></tr>`; }).join("") + `</tbody>`;
+}
+
+// ---------- Precios ----------
+let draft = {};
+let plusDraft = {};
+function renderPrecios(){
+  const names = Object.keys(insumos);
+  const plusHtml = ["premium","superpremium","bizcochuelo"].map(c => {
+    const v = plusDraft[c] ?? plus[c];
+    const who = c==="bizcochuelo" ? "Chocolate, naranja-limón o marmolado" : Object.keys(CAT_RELLENO).filter(r=>CAT_RELLENO[r]===c).join(", ") || "ningún relleno todavía";
+    return `<div class="pitem ${plusDraft[c]!==undefined?'dirty':''}"><div class="nm">${c==="bizcochuelo" ? "Bizcochuelo de sabor" : "Plus "+CAT_LABEL[c].toLowerCase()}<span>${who}</span></div>
+      <label for="plus-${c}" style="grid-column:1/-1">${c==="bizcochuelo" ? "Se suma al precio por torta ($)" : "Se suma al precio por cada capa ($)"}<input id="plus-${c}" inputmode="decimal" data-plus="${c}" value="${v}"></label></div>`;
+  }).join("");
+  $("p-list").innerHTML = `<span class="label">Adicionales</span>` + plusHtml + `<span class="label" style="margin-top:8px">Materia prima</span>` + names.map((n,i) => {
+    const d = draft[n] || insumos[n];
+    const uc = d.pres ? d.precio/d.pres : 0;
+    const uLabel = d.u==="u" ? "unidades" : d.u;
+    return `<div class="pitem ${draft[n]?'dirty':''}">
+      <div class="nm">${n}<span>${d.u==="u" ? fmt(uc)+" c/u" : "$"+uc.toLocaleString("es-AR",{maximumFractionDigits:2})+" por "+d.u}</span></div>
+      <label for="pp-${i}">Presentación (${uLabel})<input id="pp-${i}" inputmode="decimal" data-n="${n}" data-f="pres" value="${d.pres}"></label>
+      <label for="pr-${i}">Precio pagado ($)<input id="pr-${i}" inputmode="decimal" data-n="${n}" data-f="precio" value="${d.precio}"></label>
+    </div>`;
+  }).join("");
+  const c = Object.keys(draft).length + Object.keys(plusDraft).length;
+  $("p-bar").hidden = c===0;
+  $("p-count").textContent = c===1 ? "1 cambio sin guardar" : `${c} cambios sin guardar`;
+}
+$("p-list").addEventListener("change", e => {
+  const inp = e.target;
+  if (inp.dataset.plus) {
+    const v = parseFloat(String(inp.value).replace(/\./g,"").replace(",","."));
+    if (!(v >= 0)) { $("p-status").className="status err"; $("p-status").textContent = "Escribí un monto válido (puede ser 0)."; inp.value = plusDraft[inp.dataset.plus] ?? plus[inp.dataset.plus]; return; }
+    plusDraft[inp.dataset.plus] = v; $("p-status").textContent = ""; renderPrecios(); return;
+  }
+  if (!inp.dataset.n) return;
+  const n = inp.dataset.n, v = parseFloat(String(inp.value).replace(/\./g,"").replace(",","."));
+  if (!(v > 0)) { $("p-status").className="status err"; $("p-status").textContent = "Escribí un número mayor a cero."; inp.value = (draft[n]||insumos[n])[inp.dataset.f]; return; }
+  draft[n] = Object.assign({}, draft[n] || insumos[n], {[inp.dataset.f]: v});
+  $("p-status").textContent = ""; renderPrecios();
+});
+$("p-save").onclick = async () => {
+  const next = Object.assign({}, insumos, draft);
+  const nextPlus = Object.assign({}, plus, plusDraft);
+  if (!docRef || !canSave) {
+    insumos = next; plus = nextPlus; draft = {}; plusDraft = {};
+    const ok = !docRef && saveLocal(); renderPrecios(); render();
+    $("p-status").className = ok ? "status ok" : "status err";
+    $("p-status").textContent = ok ? "Precios guardados en este dispositivo." : "Aplicado solo en esta pantalla: desde acá no se pueden guardar los cambios.";
+    return;
+  }
+  $("p-save").disabled = true;
+  try {
+    await docRef.set({insumos: next, mult, plus: nextPlus});
+    insumos = next; plus = nextPlus; draft = {}; plusDraft = {};
+    $("p-status").className="status ok"; $("p-status").textContent = "Precios guardados.";
+  } catch(e) {
+    $("p-status").className="status err";
+    $("p-status").textContent = e && e.code==="invalid_argument" ? "No tenés permiso para cambiar precios en esta torta." : "No se pudo guardar. Probá de nuevo en un momento.";
+    if (e && e.code==="invalid_argument") canSave = false;
+  }
+  $("p-save").disabled = false; renderPrecios(); render();
+};
+
+// ---------- Multiplicador ----------
+let multTimer;
+function setMult(v){
+  mult = Math.max(1, Math.min(8, Math.round(v*10)/10)); render();
+  clearTimeout(multTimer);
+  multTimer = setTimeout(() => { if (docRef && canSave) docRef.set({insumos, mult, plus}).catch(()=>{}); else if (!docRef) saveLocal(); }, 900);
+}
+$("m-dn").onclick = () => setMult(mult - 0.5);
+$("m-up").onclick = () => setMult(mult + 0.5);
+
+// ---------- Cupcakes (vista previa, cantidades de ejemplo por unidad) ----------
+const CUP = {
+  qty:[6,12,24],
+  masa:{"Vainilla":[["Harina leudante",25],["Azúcar",20],["Huevos",0.4],["Aceite",10],["Esencia de vainilla",1]],
+        "Chocolate":[["Harina leudante",22],["Azúcar",20],["Huevos",0.4],["Aceite",10],["Chocolate semiamargo",8]]},
+  rel:{"Sin relleno":[],"Dulce de leche":[["Dulce de leche repostero",12]],"Nutella":[["Nutella",10]],"Frutos rojos":[["Salsa de frutos rojos",8]]},
+  fro:{"Buttercream":[["Manteca",15],["Azúcar impalpable",20],["Crema de leche",5],["Chocolate blanco",10]],
+       "Ganache blanco":[["Crema de leche",8],["Chocolate blanco",22]],
+       "Ganache semiamargo":[["Crema de leche",8],["Chocolate semiamargo",22]]},
+  deco:{"Simple":[],"Confites":[["Confites rellenos de chocolate",4]],"Oreo":[["Galletitas Oreo",0.5]]}
+};
+const csel = {qty:12, masa:"Vainilla", rel:"Dulce de leche", fro:"Buttercream", deco:"Simple"};
+function cchips(el, list, key){
+  el.innerHTML = "";
+  list.forEach(v => { const b = document.createElement("button"); b.className="chip"; b.id=`cup-${key}-${String(v).replace(/\W+/g,"")}`;
+    b.textContent = key==="qty" ? v+" u." : v; b.setAttribute("aria-pressed", String(csel[key]===v));
+    b.onclick = () => { csel[key]=v; renderCup(); }; el.appendChild(b); });
+}
+function renderCup(){
+  cchips($("c-qty"), CUP.qty, "qty"); cchips($("c-masa"), Object.keys(CUP.masa), "masa");
+  cchips($("c-rel"), Object.keys(CUP.rel), "rel"); cchips($("c-fro"), Object.keys(CUP.fro), "fro"); cchips($("c-deco"), Object.keys(CUP.deco), "deco");
+  const n = csel.qty;
+  const line = ([name,q]) => ({n:name, q:q*n, u:(insumos[name]||{}).u||"", c:q*n*unitCost(name)});
+  const layers = [
+    {key:"m", name:"Masa", tag:csel.masa, color:"#D9A55B", items:CUP.masa[csel.masa].map(line)},
+    {key:"r", name:"Relleno", tag:csel.rel, color:"#8C5A3C", items:CUP.rel[csel.rel].map(line)},
+    {key:"f", name:"Frosting", tag:csel.fro, color:"var(--accent)", items:CUP.fro[csel.fro].map(line)},
+    {key:"d", name:"Decoración", tag:csel.deco, color:"#9AA3AE", items:CUP.deco[csel.deco].map(line)}
+  ].filter(l=>l.items.length);
+  layers.forEach(l => l.total = l.items.reduce((a,i)=>a+i.c,0));
+  const cost = layers.reduce((a,l)=>a+l.total,0), price = cost*mult;
+  $("c-cost").textContent = fmt(cost); $("c-cost-u").textContent = fmt(cost/n)+" c/u";
+  $("c-price").textContent = fmt(price); $("c-price-u").textContent = fmt(price/n)+" c/u";
+  $("c-gain").textContent = fmt(price-cost); $("c-mult").textContent = mult.toLocaleString("es-AR");
+  $("c-bar").innerHTML = layers.map(l=>`<span style="width:${(l.total/cost*100).toFixed(2)}%;background:${l.color}"></span>`).join("");
+  $("c-layers").innerHTML = layers.map(l => `<details><summary><span class="sw" style="background:${l.color}"></span>
+      <span class="n">${l.name} · ${l.tag}</span><span class="c">${fmt(l.total)}</span><span class="car" aria-hidden="true">›</span></summary>
+      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${fmtU(i.q,i.u)}</span><span class="m">${fmt(i.c)}</span></div>`).join("")}</div></details>`).join("");
+}
+
+// ---------- Pestañas ----------
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", String(x===b)));
+  $("view-calc").hidden = b.dataset.tab !== "calc";
+  $("view-precios").hidden = b.dataset.tab !== "precios";
+  $("view-cup").hidden = b.dataset.tab !== "cup";
+  if (b.dataset.tab==="cup") renderCup();
+  if (b.dataset.tab==="precios") renderPrecios();
+});
+
+render();
+
+// ---------- Datos guardados ----------
+(async () => {
+  try { db = window.claude && await window.claude.use("db"); } catch(e) { db = null; }
+  if (!db) { loadLocal(); render(); return; }
+  docRef = db.doc("config/precios");
+  docRef.onSnapshot(s => {
+    if (!s.exists) return;
+    const d = s.data() || {};
+    if (d.insumos) insumos = Object.assign(JSON.parse(JSON.stringify(DEFAULT_INSUMOS)), d.insumos);
+    if (typeof d.mult === "number") mult = d.mult;
+    if (d.plus) plus = Object.assign({premium:5000, superpremium:7000, bizcochuelo:4000}, d.plus);
+    render(); if (!$("view-precios").hidden) renderPrecios(); if (!$("view-cup").hidden) renderCup();
+  }, () => {});
+})();
+</script>
+
+</body>
+</html>

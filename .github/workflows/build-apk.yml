@@ -1,0 +1,45 @@
+# Cada vez que subís cambios (push), GitHub arma el APK solo.
+name: Compilar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Crear el proyecto Android
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Compilar el APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Subir el APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: costeo-tortas-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
