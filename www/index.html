@@ -61,6 +61,12 @@ h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;letter-s
 .badge.premium,.badge.superpremium{background:var(--accent-soft);color:var(--accent)}
 .preview{background:var(--surface-2);border:1px dashed var(--accent);border-radius:12px;padding:10px 12px;font-size:.85rem;color:var(--muted)}
 .preview b{color:var(--accent)}
+.xlist{display:flex;flex-direction:column;gap:8px}
+.xlist:empty{display:none}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) 7.5em auto;gap:8px;align-items:center}
+.xrow input{width:100%;min-width:0;font:500 .95rem var(--body);padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font-variant-numeric:tabular-nums}
+.xrow button{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface-2);color:var(--muted);cursor:pointer}
+.xadd{align-self:flex-start;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font:600 .92rem var(--body);padding:9px 16px;border-radius:999px;cursor:pointer}
 .chip .tier{font-size:.78em;font-weight:600;opacity:.85}
 .plusbox{display:flex;flex-direction:column;gap:4px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.88rem}
 .prow{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
@@ -149,6 +155,12 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
     <div class="group"><span class="label">Capas de relleno</span><div class="chips" id="sel-capas"></div></div>
     <div id="sel-rels" class="wrap" style="gap:12px"></div>
     <div class="group"><span class="label">Cobertura</span><div class="chips" id="sel-cob"></div></div>
+    <div class="group">
+      <span class="label">Extras de este pedido</span>
+      <p class="note" style="margin:0">Compras que no son estándar (topper, flores, figuras, velas especiales…). Se suman al costo y al precio tal cual, sin multiplicar.</p>
+      <div id="x-list" class="xlist"></div>
+      <button id="x-add" class="xadd" type="button">+ Agregar extra</button>
+    </div>
    </div>
    <div class="col col-b">
     <div class="result" aria-live="polite">
@@ -169,7 +181,7 @@ tr.cur td{background:var(--accent-soft);font-weight:600}
           <button id="m-up" aria-label="Subir multiplicador">+</button>
         </div>
       </div>
-      <p class="note" style="margin:0">Precio sugerido = ingredientes × multiplicador + packaging al costo + adicionales (rellenos con plus y bizcochuelo de sabor).</p>
+      <p class="note" style="margin:0">Precio sugerido = ingredientes × multiplicador + packaging y extras al costo + adicionales (rellenos con plus y bizcochuelo de sabor).</p>
     </div>
 
     <div class="group">
@@ -367,6 +379,24 @@ const fmt = n => "$" + Math.round(n).toLocaleString("es-AR");
 const fmtU = (q,u) => q.toLocaleString("es-AR",{maximumFractionDigits:0}) + (u==="u" ? (q===1?" u.":" u.") : " " + u);
 const unitCost = name => { const i = insumos[name]; return i && i.pres ? i.precio / i.pres : 0; };
 
+// ---------- Extras del pedido (montos libres, no se guardan) ----------
+const extras = [];
+const extrasList = () => extras.filter(x => x.m > 0);
+function renderExtras(){
+  $("x-list").innerHTML = extras.map((x,i) => `<div class="xrow">
+      <input id="xd-${i}" data-i="${i}" data-f="d" placeholder="Qué es (ej: topper)" value="${x.d.replace(/"/g,"&quot;")}" aria-label="Descripción del extra ${i+1}">
+      <input id="xm-${i}" data-i="${i}" data-f="m" inputmode="decimal" placeholder="$ monto" value="${x.m||""}" aria-label="Monto del extra ${i+1}">
+      <button data-del="${i}" aria-label="Quitar extra ${i+1}">✕</button></div>`).join("");
+}
+$("x-add").onclick = () => { extras.push({d:"", m:0}); renderExtras(); const el=$("xd-"+(extras.length-1)); if (el) el.focus(); };
+$("x-list").addEventListener("input", e => {
+  const t = e.target, i = +t.dataset.i; if (!extras[i]) return;
+  if (t.dataset.f==="d") extras[i].d = t.value;
+  else extras[i].m = parseFloat(String(t.value).replace(/\./g,"").replace(",",".")) || 0;
+  render();
+});
+$("x-list").addEventListener("click", e => { const d = e.target.dataset.del; if (d===undefined) return; extras.splice(+d,1); renderExtras(); render(); });
+
 function compute(size, capas, rels, cob, biz="Vainilla"){
   const t = TORTAS[size], cobD = COBERTURAS[cob];
   const line = ([n,q]) => ({n, q, u:(insumos[n]||{}).u || "", c: q * unitCost(n)});
@@ -376,11 +406,12 @@ function compute(size, capas, rels, cob, biz="Vainilla"){
        sub: "1/3 de la receta (receta = 3 capas)", items:RELLENOS[rel][size].map(([n,q]) => line([n, q/3]))})),
     {key:"gan", name:"Ganache", color:"#4B2E2A", items:t.gan.map(line), off:!cobD.ganache},
     {key:"cob", name:"Cobertura", tag:cob, color:"var(--accent)", items:cobD[size].map(line)},
-    {key:"pack", name:"Packaging", color:"#9AA3AE", items:t.pack.map(line), pack:true}
+    {key:"pack", name:"Packaging", color:"#9AA3AE", items:t.pack.map(line), pack:true},
+    {key:"extra", name:"Extras", color:"#5E7C8A", pack:true, items:extrasList().map(x=>({n:x.d||"Extra", q:1, u:"u", c:x.m, noQ:true}))}
   ];
   layers.forEach(l => l.total = l.off ? 0 : l.items.reduce((s,i)=>s+i.c,0));
   const ingr = layers.filter(l=>!l.pack).reduce((s,l)=>s+l.total,0);
-  const pack = layers.find(l=>l.pack).total;
+  const pack = layers.filter(l=>l.pack).reduce((s,l)=>s+l.total,0);
   const plusItems = rels.slice(0,capas).map((rel,k)=>({k, rel, cat:CAT_RELLENO[rel]||"clasico"})).filter(x=>x.cat!=="clasico").map(x=>({...x, v: plus[x.cat]||0}));
   if (biz !== "Vainilla") plusItems.unshift({k:-1, rel:biz, cat:"bizcochuelo", v: plus.bizcochuelo||0});
   const plusTotal = plusItems.reduce((a,x)=>a+x.v,0);
@@ -430,12 +461,12 @@ function render(){
   $("o-mult").textContent = "×" + mult.toLocaleString("es-AR");
   $("o-bar").innerHTML = r.layers.filter(l=>l.total>0).map(l=>`<span style="width:${(l.total/r.cost*100).toFixed(2)}%;background:${l.color}" title="${l.name}"></span>`).join("");
   const open = new Set([...document.querySelectorAll("#o-layers details[open]")].map(d=>d.dataset.k));
-  $("o-layers").innerHTML = r.layers.map(l => `
+  $("o-layers").innerHTML = r.layers.filter(l=>l.items.length).map(l => `
     <details data-k="${l.key}" class="${l.off?'off':''}" ${open.has(l.key)?'open':''}>
       <summary><span class="sw" style="background:${l.color}"></span>
         <span class="n">${l.name}${l.tag?` · ${l.tag}`:""}${l.off?`<small>No se usa con ${sel.cob.toLowerCase()}</small>`:""}${l.sub?`<small>${l.sub}</small>`:""}</span>
         <span class="c">${fmt(l.total)}</span><span class="car" aria-hidden="true">›</span></summary>
-      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${fmtU(i.q,i.u)}</span><span class="m">${fmt(l.off?0:i.c)}</span></div>`).join("")}</div>
+      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${i.noQ?"":fmtU(i.q,i.u)}</span><span class="m">${fmt(l.off?0:i.c)}</span></div>`).join("")}</div>
     </details>`).join("");
   $("o-table").innerHTML = `<thead><tr><th>Tamaño</th><th>Costo</th><th>Precio sug.</th><th>Ganancia</th></tr></thead><tbody>` +
     SIZES.map(s => { const x = compute(s, sel.capas, sel.rels, sel.cob, sel.biz);
@@ -550,7 +581,7 @@ function renderCup(){
   $("c-bar").innerHTML = layers.map(l=>`<span style="width:${(l.total/cost*100).toFixed(2)}%;background:${l.color}"></span>`).join("");
   $("c-layers").innerHTML = layers.map(l => `<details><summary><span class="sw" style="background:${l.color}"></span>
       <span class="n">${l.name} · ${l.tag}</span><span class="c">${fmt(l.total)}</span><span class="car" aria-hidden="true">›</span></summary>
-      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${fmtU(i.q,i.u)}</span><span class="m">${fmt(i.c)}</span></div>`).join("")}</div></details>`).join("");
+      <div class="rows">${l.items.map(i=>`<div class="row"><span>${i.n}</span><span class="q">${i.noQ?"":fmtU(i.q,i.u)}</span><span class="m">${fmt(i.c)}</span></div>`).join("")}</div></details>`).join("");
 }
 
 // ---------- Pestañas ----------
