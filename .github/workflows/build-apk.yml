@@ -5,7 +5,7 @@ name: Compilar APK
 on:
   push:
     branches: [main]
-    paths: ["capacitor.config.json", "package.json", ".github/workflows/build-apk.yml"]
+    paths: ["capacitor.config.json", "package.json", "assets/**", "android-debug.keystore", ".github/workflows/build-apk.yml"]
   workflow_dispatch:
 
 jobs:
@@ -32,7 +32,13 @@ jobs:
       - name: Crear el proyecto Android
         run: |
           npx cap add android
+          npx @capacitor/assets generate --android --iconBackgroundColor "#FCF4EE"
           npx cap sync android
+
+      - name: Usar siempre la misma firma (para poder instalar encima)
+        run: |
+          mkdir -p ~/.android
+          cp android-debug.keystore ~/.android/debug.keystore
 
       - name: Compilar el APK
         working-directory: android

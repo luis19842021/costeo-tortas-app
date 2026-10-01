@@ -19,3 +19,7 @@ En un par de minutos la app del celular muestra la versión nueva (cerrala y abr
 Actions → "Compilar APK" (tilde verde) → Artifacts → `costeo-tortas-apk` → pasar `app-debug.apk` al celular e instalar.
 
 Los precios que cambies en la app se guardan en el celular. Después de la primera carga, la app también abre sin internet.
+
+## Ícono y firma
+- `assets/` → ícono de la app (logo de Colores). Se genera en todos los tamaños al compilar.
+- `android-debug.keystore` → firma fija del APK, para que cada APK nuevo se instale encima del anterior sin perder los precios guardados.
